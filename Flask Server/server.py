@@ -18,6 +18,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'Arjuna'
 api = Api(app)
 
+# Folder where the image received from android will be saved.
 UPLOAD_FOLDER = os.path.basename('Uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -34,6 +35,7 @@ def index():
 # def get_predicted_text(self):
 # 	return "Got ur image successfully on the server"
 
+# Function to conver image from base64 format (from android POST request) to bytes object and then saving it in jpg format to the disk.  
 def convertImage(imgData1, upload_loc):
 	with open( upload_loc, "wb") as output:
 		output.write(base64.b64decode(imgData1))
@@ -80,6 +82,6 @@ api.add_resource(ImageUpload, '/uploadimage')
 
 
 
-
+# Running the server
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port = 5000)
