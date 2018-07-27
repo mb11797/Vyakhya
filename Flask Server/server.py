@@ -63,7 +63,11 @@ class ImageUpload(Resource):
         # # decoded_image = io.imread(np.frombuffer(decoded_image, dtype=np.uint8))
         # decoded_image = np.frombuffer(decoded_image, dtype=np.uint8)
 
-        extracted_data = pytesseract.image_to_string(decoded_image, lang='hin+eng')
+        extracted_data = pytesseract.image_to_string(decoded_image, lang='eng')
+        # extracted_data = pytesseract.image_to_string(decoded_image, lang='hin+tel')
+        # extracted_data = pytesseract.image_to_string(decoded_image, lang='tel')
+
+
         # fh.write(image_data)
         # fh.close()
         # data = {'Image Data' : 'Image received of Size ' + str(sz) + ' MB'}
