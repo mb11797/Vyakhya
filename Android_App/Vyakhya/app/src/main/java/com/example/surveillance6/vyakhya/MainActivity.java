@@ -1,163 +1,386 @@
 package com.example.surveillance6.vyakhya;
 
-import android.annotation.SuppressLint;
-import android.support.v7.app.ActionBar;
+import android.Manifest;
+import android.app.Activity;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.MediaStore;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.Loader;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.os.Handler;
-import android.view.MotionEvent;
+import android.util.Base64;
+import android.util.Log;
 import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.Toast;
 
-/**
- * An example full-screen activity that shows and hides the system UI (i.e.
- * status bar and navigation/system bar) with user interaction.
- */
-public class MainActivity extends AppCompatActivity {
-    /**
-     * Whether or not the system UI should be auto-hidden after
-     * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
-     */
-    private static final boolean AUTO_HIDE = true;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 
-    /**
-     * If {@link #AUTO_HIDE} is set, the number of milliseconds to wait after
-     * user interaction before hiding the system UI.
-     */
-    private static final int AUTO_HIDE_DELAY_MILLIS = 3000;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
-    /**
-     * Some older devices needs a small delay between UI widget updates
-     * and a change of the status and navigation bar.
-     */
-    private static final int UI_ANIMATION_DELAY = 300;
-    private final Handler mHideHandler = new Handler();
-    private View mContentView;
-    private final Runnable mHidePart2Runnable = new Runnable() {
-        @SuppressLint("InlinedApi")
-        @Override
-        public void run() {
-            // Delayed removal of status and navigation bar
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-            // Note that some of these constants are new as of API 16 (Jelly Bean)
-            // and API 19 (KitKat). It is safe to use them, as they are inlined
-            // at compile-time and do nothing on earlier devices.
-            mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
-                    | View.SYSTEM_UI_FLAG_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-        }
-    };
-    private View mControlsView;
-    private final Runnable mShowPart2Runnable = new Runnable() {
-        @Override
-        public void run() {
-            // Delayed display of UI elements
-            ActionBar actionBar = getSupportActionBar();
-            if (actionBar != null) {
-                actionBar.show();
-            }
-            mControlsView.setVisibility(View.VISIBLE);
-        }
-    };
-    private boolean mVisible;
-    private final Runnable mHideRunnable = new Runnable() {
-        @Override
-        public void run() {
-            hide();
-        }
-    };
-    /**
-     * Touch listener to use for in-layout UI controls to delay hiding the
-     * system UI. This is to prevent the jarring behavior of controls going away
-     * while interacting with activity UI.
-     */
-    private final View.OnTouchListener mDelayHideTouchListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View view, MotionEvent motionEvent) {
-            if (AUTO_HIDE) {
-                delayedHide(AUTO_HIDE_DELAY_MILLIS);
-            }
-            return false;
-        }
-    };
+    Button slect_img , send ;
+    Integer REQUEST_CAMERA=1,REQUEST_FILE=0;
+    private static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 1212;
+    ImageView pasteventimageview ;
+    Bitmap pastimage;
+    public static String TAG = "Popup";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
-        setContentView(R.layout.activity_fullscreen);
+        slect_img = (Button)findViewById(R.id.slect_img);
 
-        mVisible = true;
-        mControlsView = findViewById(R.id.fullscreen_content_controls);
-        mContentView = findViewById(R.id.fullscreen_content);
+        send = (Button)findViewById(R.id.send);
+
+        pasteventimageview = (ImageView)findViewById(R.id.pasteventimageview);
+
+        slect_img.setOnClickListener(this);
+        send.setOnClickListener(this);
 
 
-        // Set up the user interaction to manually show or hide the system UI.
-        mContentView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                toggle();
-            }
-        });
-
-        // Upon interacting with UI controls, delay any scheduled hide()
-        // operations to prevent the jarring behavior of controls going away
-        // while interacting with the UI.
-        findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
     }
 
     @Override
-    protected void onPostCreate(Bundle savedInstanceState) {
-        super.onPostCreate(savedInstanceState);
+    public void onClick(View view) {
 
-        // Trigger the initial hide() shortly after the activity has been
-        // created, to briefly hint to the user that UI controls
-        // are available.
-        delayedHide(100);
+
+        if (view.getId() == R.id.send)
+        {
+
+//            Toast.makeText(getBaseContext(), "Success", Toast.LENGTH_LONG).show();
+
+
+            final Retrofit retrofit = new Retrofit.Builder()
+                    .baseUrl(Api.BASE_URL)
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build();
+            Api api = retrofit.create(Api.class);
+
+
+            final RequestData requestData = new RequestData();
+
+
+
+
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            pastimage.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
+
+            String base_64_img =  Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
+
+
+
+            requestData.setImage(base_64_img);
+
+            Call<ResultData> result = api.getresult(requestData);
+
+
+
+            result.enqueue(new Callback<ResultData>() {
+                @Override
+                public void onResponse(Call<ResultData> call, Response<ResultData> response) {
+
+
+//                    Toast.makeText(getBaseContext(), "Success", Toast.LENGTH_LONG).show();
+//                    Api api_1 = retrofit.create(Api.class);
+//                    Call<ResultData> res = api_1.greetUser();
+////                    String msg = res.execute(Response<ResultData>);
+////                    Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show()
+//                    res.enqueue(new Callback<ResultData>(){
+//                        @Override
+//                        public void onResponse(Call<ResultData> call_1, Response<ResultData> response_1) {
+//                            if (response_1.isSuccessful()) {
+//                                String msg = response_1.body().toString();
+//                                Log.d(TAG, "onResponse");
+////                                print("---TTTT :: GET msg from server :: " + msg);
+//                                Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+//                            }
+//                            else{
+//                                Log.d(TAG,"Hello");
+//                            }
+////                            String msg = response_1.body().toString();
+////                            Log.d(TAG, "onResponse");
+////                            print("---TTTT :: GET msg from server :: " + msg)
+////                            Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+//
+//                        }
+//
+//
+//                        @Override
+//                        public void onFailure(Call<ResultData> call, Throwable t) {
+//                            Toast.makeText(getApplicationContext(), "Network Error 1", Toast.LENGTH_LONG).show();
+//                        }
+//
+//                    });
+
+                    ResultData res = response.body();
+
+                    if(res == null)
+                        return;
+                    String data = res.getData();
+
+//                    Intent intent = new Intent(MainActivity.this, ResultActivity.class);
+                    Toast.makeText(getApplicationContext(), data, Toast.LENGTH_LONG).show();
+
+                }
+
+                @Override
+                public void onFailure(Call<ResultData> call, Throwable t) {
+                    Toast.makeText(getApplicationContext(), "Network Error", Toast.LENGTH_LONG).show();
+                }
+
+
+
+            });
+
+
+
+
+
+        }else {
+            takeimagetask();
+
+        }
+
     }
 
-    private void toggle() {
-        if (mVisible) {
-            hide();
-        } else {
-            show();
+
+
+    public void takeimagetask()
+    {
+        final String[] menuforalert = {"Camera", "From Device"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select");
+        builder.setCancelable(true);
+        builder.setItems(menuforalert, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                if (which == 0) {
+
+
+                    Intent cameraintent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                    if (cameraintent.resolveActivity(getPackageManager()) != null)
+                        startActivityForResult(cameraintent, REQUEST_CAMERA);
+
+
+                } else if (which == 1) {
+
+
+                    if(hasPermissions()) {
+
+                        getfilefromexternalstorage();
+
+                    }else{
+
+
+                        requestPerms();
+                    }
+
+                }
+            }
+
+        });
+
+        builder.show();
+
+    }
+
+    private void requestPerms(){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+
+            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
         }
     }
 
-    private void hide() {
-        // Hide UI first
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.hide();
+
+    public void getfilefromexternalstorage(){
+        Intent fileintent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        fileintent.setType("image/*");
+        startActivityForResult(Intent.createChooser(fileintent, "Select File"), REQUEST_FILE);
+    }
+
+
+    private boolean hasPermissions(){
+
+        if (ActivityCompat.checkSelfPermission(getBaseContext(), Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED)
+        {
+            return false;
         }
-        mControlsView.setVisibility(View.GONE);
-        mVisible = false;
-
-        // Schedule a runnable to remove the status and navigation bar after a delay
-        mHideHandler.removeCallbacks(mShowPart2Runnable);
-        mHideHandler.postDelayed(mHidePart2Runnable, UI_ANIMATION_DELAY);
+        return true;
     }
 
-    @SuppressLint("InlinedApi")
-    private void show() {
-        // Show the system bar
-        mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-        mVisible = true;
 
-        // Schedule a runnable to display UI elements after a delay
-        mHideHandler.removeCallbacks(mHidePart2Runnable);
-        mHideHandler.postDelayed(mShowPart2Runnable, UI_ANIMATION_DELAY);
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        boolean allowed = true;
+
+        switch (requestCode){
+            case MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE:
+
+                for (int res : grantResults){
+                    // if user granted all permissions.
+                    allowed = allowed && (res == PackageManager.PERMISSION_GRANTED);
+                }
+
+                break;
+            default:
+                // if user not granted permissions.
+                allowed = false;
+                break;
+        }
+
+        if (allowed){
+            //user granted all permissions we can perform our task.
+
+
+            getfilefromexternalstorage();
+        }
+        else {
+            // we will give warning to user that they haven't granted permissions.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE)){
+                    Toast.makeText(getBaseContext(), "Storage Permissions denied.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+
     }
 
-    /**
-     * Schedules a call to hide() in delay milliseconds, canceling any
-     * previously scheduled calls.
-     */
-    private void delayedHide(int delayMillis) {
-        mHideHandler.removeCallbacks(mHideRunnable);
-        mHideHandler.postDelayed(mHideRunnable, delayMillis);
+    public static Bitmap decodeUri(Context c, Uri uri, final int requiredSize)
+            throws FileNotFoundException {
+        BitmapFactory.Options o = new BitmapFactory.Options();
+        o.inJustDecodeBounds = true;
+        BitmapFactory.decodeStream(c.getContentResolver().openInputStream(uri), null, o);
+
+        int width_tmp = o.outWidth
+                , height_tmp = o.outHeight;
+        int scale = 1;
+
+        while(true) {
+            if(width_tmp / 2 < requiredSize || height_tmp / 2 < requiredSize)
+                break;
+            width_tmp /= 2;
+            height_tmp /= 2;
+            scale *= 2;
+        }
+
+        BitmapFactory.Options o2 = new BitmapFactory.Options();
+        o2.inSampleSize = scale;
+        return BitmapFactory.decodeStream(c.getContentResolver().openInputStream(uri), null, o2);
     }
+
+
+
+
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode== Activity.RESULT_OK)
+        {
+
+
+
+            if(requestCode==REQUEST_FILE)
+            {
+
+
+                Uri selectedimageuri = data.getData();
+                Bitmap image;
+                try {
+                    image = decodeUri(getBaseContext(),selectedimageuri,10000);
+
+                } catch (FileNotFoundException e) {
+
+
+                    return;
+                }
+
+
+                if (REQUEST_FILE==0)
+                {
+
+
+
+                    pasteventimageview.setImageBitmap(image);
+
+
+                    // converting the images to base64 string for easy transfer
+                    if (pasteventimageview.getDrawable() != null) {
+
+
+                        pastimage = image;
+
+
+
+                    }
+
+
+
+
+                }
+
+
+
+            }
+            else if (requestCode==REQUEST_CAMERA)
+            {
+                Bundle bundle = data.getExtras();
+                final Bitmap image=(Bitmap) bundle.get("data");
+                if (REQUEST_CAMERA==1)
+                {
+                    pasteventimageview.setImageBitmap(image);
+
+                    // converting the images to base64 string for easy transfer
+                    if(pasteventimageview.getDrawable() != null)
+                    {
+                        pastimage=image;
+
+
+
+                    }
+
+
+
+
+                }
+
+
+
+
+            }
+
+        }
+    }
+
+
+
+
 }

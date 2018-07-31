@@ -65,10 +65,19 @@ class ImageUpload(Resource):
         # # decoded_image = io.imread(np.frombuffer(decoded_image, dtype=np.uint8))
         # decoded_image = np.frombuffer(decoded_image, dtype=np.uint8)
 
-        extracted_data = pytesseract.image_to_string(decoded_image, lang='eng')
+        # extracted_data = pytesseract.image_to_string(decoded_image, lang='hin')
+        # extracted_data = pytesseract.image_to_string(decoded_image, lang='eng+hin')
+        extracted_data = pytesseract.image_to_string(decoded_image, lang='eng+hin+tam')
+        # extracted_data = pytesseract.image_to_string(decoded_image, lang='eng')
         # extracted_data = pytesseract.image_to_string(decoded_image, lang='hin+tel')
         # extracted_data = pytesseract.image_to_string(decoded_image, lang='tel')
-
+        # extracted_data = pytesseract.image_to_string(decoded_image, lang='guj')
+        # extracted_data = pytesseract.image_to_string(decoded_image, lang='ben')
+        # extracted_data = pytesseract.image_to_string(decoded_image, lang='kan')
+        # extracted_data = pytesseract.image_to_string(decoded_image, lang='san')
+        # extracted_data = pytesseract.image_to_string(decoded_image, lang='tam')
+        # extracted_data = pytesseract.image_to_string(decoded_image, lang='eng+tam')
+        # extracted_data = pytesseract.image_to_string(decoded_image, lang='hin+tam')
 
         # fh.write(image_data)
         # fh.close()
